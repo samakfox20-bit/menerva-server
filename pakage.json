@@ -1,0 +1,6 @@
+{
+  "name": "minerva-server",
+  "version": "1.0.0",
+  "description": "미네르바 주식 데이터 서버",
+  "dependencies": {}
+}
