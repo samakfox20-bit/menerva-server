@@ -1,0 +1,6 @@
+{
+  "name": "minerva-server",
+  "version": "1.0.0",
+  "description": "Minerva stock data server",
+  "dependencies": {}
+}
