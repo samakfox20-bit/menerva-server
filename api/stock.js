@@ -7,35 +7,30 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'ticker required' });
   }
   
+  const apiKey = process.env.FMP_API_KEY;
+  if (!apiKey) {
+    return res.status(500).json({ error: 'API key not configured' });
+  }
+  
   try {
-    const end = Math.floor(Date.now() / 1000);
-    const start = end - (3 * 365 * 24 * 60 * 60);
-    const url = `https://query1.finance.yahoo.com/v7/finance/download/${ticker}?period1=${start}&period2=${end}&interval=1d&events=history`;
+    const url = `https://financialmodelingprep.com/api/v3/historical-price-full/${ticker}?serietype=line&apikey=${apiKey}`;
     
-    const response = await fetch(url, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-      }
-    });
+    const response = await fetch(url);
     
     if (!response.ok) {
-      return res.status(502).json({ error: `Yahoo fetch failed: ${response.status}` });
+      return res.status(502).json({ error: `FMP fetch failed: ${response.status}` });
     }
     
-    const text = await response.text();
-    if (!text || !text.includes(',')) {
-      return res.status(404).json({ error: 'no data' });
+    const json = await response.json();
+    
+    if (!json.historical || !Array.isArray(json.historical)) {
+      return res.status(404).json({ error: 'no data for ticker' });
     }
     
-    const lines = text.trim().split('\n');
-    const data = [];
-    for (let i = 1; i < lines.length; i++) {
-      const parts = lines[i].split(',');
-      if (parts.length < 5) continue;
-      const close = parseFloat(parts[4]);
-      if (isNaN(close)) continue;
-      data.push({ date: parts[0], price: close });
-    }
+    const data = json.historical
+      .map(d => ({ date: d.date, price: d.close }))
+      .reverse()
+      .slice(-750);
     
     if (data.length === 0) {
       return res.status(404).json({ error: 'parse failed' });
