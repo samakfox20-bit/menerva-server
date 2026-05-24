@@ -13,7 +13,7 @@ export default async function handler(req, res) {
   }
   
   try {
-    const url = `https://financialmodelingprep.com/api/v3/historical-price-full/${ticker}?serietype=line&apikey=${apiKey}`;
+    const url = `https://financialmodelingprep.com/stable/historical-price-eod/full?symbol=${ticker}&apikey=${apiKey}`;
     
     const response = await fetch(url);
     
@@ -23,12 +23,13 @@ export default async function handler(req, res) {
     
     const json = await response.json();
     
-    if (!json.historical || !Array.isArray(json.historical)) {
+    if (!Array.isArray(json) || json.length === 0) {
       return res.status(404).json({ error: 'no data for ticker' });
     }
     
-    const data = json.historical
+    const data = json
       .map(d => ({ date: d.date, price: d.close }))
+      .filter(d => d.date && !isNaN(d.price))
       .reverse()
       .slice(-750);
     
