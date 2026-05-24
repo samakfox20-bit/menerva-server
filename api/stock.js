@@ -8,15 +8,23 @@ export default async function handler(req, res) {
   }
   
   try {
-    const url = `https://stooq.com/q/d/l/?s=${ticker}&i=d`;
-    const response = await fetch(url);
-    if (!response.ok) {
-      return res.status(502).json({ error: 'Stooq fetch failed' });
-    }
-    const text = await response.text();
+    const end = Math.floor(Date.now() / 1000);
+    const start = end - (3 * 365 * 24 * 60 * 60);
+    const url = `https://query1.finance.yahoo.com/v7/finance/download/${ticker}?period1=${start}&period2=${end}&interval=1d&events=history`;
     
-    if (text.startsWith('No data') || !text.includes(',')) {
-      return res.status(404).json({ error: 'no data for ticker' });
+    const response = await fetch(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+      }
+    });
+    
+    if (!response.ok) {
+      return res.status(502).json({ error: `Yahoo fetch failed: ${response.status}` });
+    }
+    
+    const text = await response.text();
+    if (!text || !text.includes(',')) {
+      return res.status(404).json({ error: 'no data' });
     }
     
     const lines = text.trim().split('\n');
@@ -34,7 +42,7 @@ export default async function handler(req, res) {
     }
     
     res.setHeader('Cache-Control', 's-maxage=3600');
-    return res.status(200).json({ ticker, data: data.slice(-750) });
+    return res.status(200).json({ ticker, data });
   } catch (e) {
     return res.status(500).json({ error: e.message });
   }
